@@ -3,7 +3,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import Resize, Compose, ToTensor, Normalize
 import random
-from scipy.misc import imread
+from imageio import imread
 import numpy as np
 import pickle
 import os
@@ -155,7 +155,7 @@ class AG(Dataset):
         else:
             print('There are {} videos and {} valid frames'.format(len(self.video_list), self.valid_nums))
             print('{} frames have no human bbox in GT'.format(self.non_gt_human_nums))
-            print('Removed {} of them without joint heatmaps which means FasterRCNN also cannot find the human'.format(non_heatmap_nums))
+            print('Removed {} of them without joint heatmaps which means FasterRCNN also cannot find the human'.format(self.non_heatmap_nums))
         print('x' * 60)
 
     def __getitem__(self, index):
