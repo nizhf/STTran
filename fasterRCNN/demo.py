@@ -159,32 +159,12 @@ if __name__ == '__main__':
   # train set
   # -- Note: Use validation set and disable the flipped to enable faster loading.
 
-  #input_dir = args.load_dir + "/" + args.net + "/" + args.dataset
-  input_dir = 'data/tmp/'
+  input_dir = args.load_dir + "/" + args.net + "/" + args.dataset
   if not os.path.exists(input_dir):
     raise Exception('There is no input directory for loading network from ' + input_dir)
   load_name = os.path.join(input_dir,
     'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 
-  COCO_INSTANCE_CATEGORY_NAMES = [
-      '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
-      'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign',
-      'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-      'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella',
-      'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
-      'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
-      'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
-      'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
-      'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table',
-      'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
-      'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book',
-      'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
-  ]
-  AG_NAMES = ['__background__', 'person', 'bag', 'bed', 'blanket', 'book', 'box', 'broom', 'chair',
-                  'closet/cabinet', 'clothes', 'cup/glass/bottle', 'dish', 'door', 'doorknob', 'doorway', 'floor',
-                  'food', 'groceries', 'laptop', 'light', 'medicine', 'mirror', 'paper/notebook', 'phone/camera',
-                  'picture', 'pillow', 'refrigerator', 'sandwich', 'shelf', 'shoe', 'sofa/couch', 'table', 'television',
-                  'towel', 'vacuum', 'window']
   pascal_classes = np.asarray(['__background__',
                        'aeroplane', 'bicycle', 'bird', 'boat',
                        'bottle', 'bus', 'car', 'cat', 'chair',
@@ -196,7 +176,7 @@ if __name__ == '__main__':
   if args.net == 'vgg16':
     fasterRCNN = vgg16(pascal_classes, pretrained=False, class_agnostic=args.class_agnostic)
   elif args.net == 'res101':
-    fasterRCNN = resnet(AG_NAMES, 101, pretrained=False, class_agnostic=args.class_agnostic)
+    fasterRCNN = resnet(pascal_classes, 101, pretrained=False, class_agnostic=args.class_agnostic)
   elif args.net == 'res50':
     fasterRCNN = resnet(pascal_classes, 50, pretrained=False, class_agnostic=args.class_agnostic)
   elif args.net == 'res152':
@@ -224,11 +204,10 @@ if __name__ == '__main__':
   print("load checkpoint %s" % (load_name))
 
   # initilize the tensor holder here.
-  with torch.no_grad():
-        im_data = torch.FloatTensor(1)
-        im_info = torch.FloatTensor(1)
-        num_boxes = torch.LongTensor(1)
-        gt_boxes = torch.FloatTensor(1)
+  im_data = torch.FloatTensor(1)
+  im_info = torch.FloatTensor(1)
+  num_boxes = torch.LongTensor(1)
+  gt_boxes = torch.FloatTensor(1)
 
   # ship to cuda
   if args.cuda > 0:
@@ -238,8 +217,10 @@ if __name__ == '__main__':
     gt_boxes = gt_boxes.cuda()
 
   # make variable
-
-
+  im_data = Variable(im_data, volatile=True)
+  im_info = Variable(im_info, volatile=True)
+  num_boxes = Variable(num_boxes, volatile=True)
+  gt_boxes = Variable(gt_boxes, volatile=True)
 
   if args.cuda > 0:
     cfg.CUDA = True
@@ -298,21 +279,21 @@ if __name__ == '__main__':
       im_info_pt = torch.from_numpy(im_info_np)
 
       with torch.no_grad():
-          im_data.resize_(im_data_pt.size()).copy_(im_data_pt)
-          im_info.resize_(im_info_pt.size()).copy_(im_info_pt)
-          gt_boxes.resize_(1, 1, 5).zero_()
-          num_boxes.resize_(1).zero_()
+              im_data.resize_(im_data_pt.size()).copy_(im_data_pt)
+              im_info.resize_(im_info_pt.size()).copy_(im_info_pt)
+              gt_boxes.resize_(1, 1, 5).zero_()
+              num_boxes.resize_(1).zero_()
 
-          # pdb.set_trace()
-          det_tic = time.time()
+      # pdb.set_trace()
+      det_tic = time.time()
 
-          rois, cls_prob, bbox_pred, \
-          rpn_loss_cls, rpn_loss_box, \
-          RCNN_loss_cls, RCNN_loss_bbox, \
-          rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      rois, cls_prob, bbox_pred, \
+      rpn_loss_cls, rpn_loss_box, \
+      RCNN_loss_cls, RCNN_loss_bbox, \
+      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
 
-          scores = cls_prob.data
-          boxes = rois.data[:, :, 1:5]
+      scores = cls_prob.data
+      boxes = rois.data[:, :, 1:5]
 
       if cfg.TEST.BBOX_REG:
           # Apply bounding-box regression deltas
@@ -335,7 +316,7 @@ if __name__ == '__main__':
                 else:
                     box_deltas = box_deltas.view(-1, 4) * torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS) \
                                + torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_MEANS)
-                box_deltas = box_deltas.view(1, -1, 4 * len(AG_NAMES))
+                box_deltas = box_deltas.view(1, -1, 4 * len(pascal_classes))
 
           pred_boxes = bbox_transform_inv(boxes, box_deltas, 1)
           pred_boxes = clip_boxes(pred_boxes, im_info.data, 1)
@@ -352,7 +333,7 @@ if __name__ == '__main__':
       misc_tic = time.time()
       if vis:
           im2show = np.copy(im)
-      for j in xrange(1, len(AG_NAMES)):
+      for j in xrange(1, len(pascal_classes)):
           inds = torch.nonzero(scores[:,j]>thresh).view(-1)
           # if there is det
           if inds.numel() > 0:
@@ -369,9 +350,8 @@ if __name__ == '__main__':
             # keep = nms(cls_dets, cfg.TEST.NMS, force_cpu=not cfg.USE_GPU_NMS)
             keep = nms(cls_boxes[order, :], cls_scores[order], cfg.TEST.NMS)
             cls_dets = cls_dets[keep.view(-1).long()]
-
             if vis:
-              im2show = vis_detections(im2show, AG_NAMES[j], cls_dets.cpu().numpy(), 0)
+              im2show = vis_detections(im2show, pascal_classes[j], cls_dets.cpu().numpy(), 0.5)
 
       misc_toc = time.time()
       nms_time = misc_toc - misc_tic

@@ -58,7 +58,7 @@ def parse_args():
                       help='set config keys', default=None,
                       nargs=argparse.REMAINDER)
   parser.add_argument('--load_dir', dest='load_dir',
-                      help='directory to load models', default="models/tmp",
+                      help='directory to load models', default="models",
                       type=str)
   parser.add_argument('--cuda', dest='cuda',
                       help='whether use CUDA',
@@ -139,18 +139,6 @@ if __name__ == '__main__':
   cfg.TRAIN.USE_FLIPPED = False
   imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name, False)
   imdb.competition_mode(on=True)
-  with open('/home/cong/Dokumente/dynamicSG/preprocessing/result/ag_database.pkl', 'rb') as f:
-      ag_database = pickle.load(f)
-  imdb._class_to_coco_cat_id = ag_database['imdb']['_class_to_coco_cat_id']
-  imdb._class_to_ind = ag_database['imdb']['_class_to_ind']
-  imdb._classes = ag_database['imdb']['_classes']
-  imdb._image_index = ag_database['image_index_test']
-  imdb._roidb = ag_database['roidb_test']
-
-  roidb = ag_database['roidb_test']
-  ratio_list = ag_database['ratio_list_test']
-  ratio_index = ag_database['ratio_index_test']
-  del ag_database
 
   print('{:d} roidb entries'.format(len(roidb)))
 
@@ -237,14 +225,14 @@ if __name__ == '__main__':
 
   fasterRCNN.eval()
   empty_array = np.transpose(np.array([[],[],[],[],[]]), (1,0))
-  for i in range(num_images):#num_images
+  for i in range(num_images):
 
       data = next(data_iter)
       with torch.no_grad():
-          im_data.resize_(data[0].size()).copy_(data[0])
-          im_info.resize_(data[1].size()).copy_(data[1])
-          gt_boxes.resize_(data[2].size()).copy_(data[2])
-          num_boxes.resize_(data[3].size()).copy_(data[3])
+              im_data.resize_(data[0].size()).copy_(data[0])
+              im_info.resize_(data[1].size()).copy_(data[1])
+              gt_boxes.resize_(data[2].size()).copy_(data[2])
+              num_boxes.resize_(data[3].size()).copy_(data[3])
 
       det_tic = time.time()
       rois, cls_prob, bbox_pred, \

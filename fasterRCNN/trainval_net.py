@@ -15,7 +15,6 @@ import argparse
 import pprint
 import pdb
 import time
-import pickle
 
 import torch
 from torch.autograd import Variable
@@ -195,15 +194,7 @@ if __name__ == '__main__':
   # -- Note: Use validation set and disable the flipped to enable faster loading.
   cfg.TRAIN.USE_FLIPPED = True
   cfg.USE_GPU_NMS = args.cuda
-  #imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
-  with open('/home/cong/Dokumente/dynamicSG/preprocessing/result/ag_database.pkl', 'rb') as f:
-      ag_database = pickle.load(f)
-  imdb = ag_database['imdb']
-  roidb = ag_database['roidb_train']
-  ratio_list = ag_database['ratio_list_train']
-  ratio_index = ag_database['ratio_index_train']
-  del ag_database
-
+  imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
   train_size = len(roidb)
 
   print('{:d} roidb entries'.format(len(roidb)))
@@ -215,7 +206,7 @@ if __name__ == '__main__':
   sampler_batch = sampler(train_size, args.batch_size)
 
   dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
-                           imdb['num_classes'], training=True)
+                           imdb.num_classes, training=True)
 
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                             sampler=sampler_batch, num_workers=args.num_workers)
@@ -246,7 +237,7 @@ if __name__ == '__main__':
   if args.net == 'vgg16':
     fasterRCNN = vgg16(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res101':
-    fasterRCNN = resnet(imdb['classes'], 101, pretrained=True, class_agnostic=args.class_agnostic)
+    fasterRCNN = resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res50':
     fasterRCNN = resnet(imdb.classes, 50, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res152':
