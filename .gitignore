@@ -1,3 +1,6 @@
+# datasets
+*.pkl
+
 # Weights
 *.pt
 *.t7
